@@ -329,7 +329,7 @@ def export_integrator(pbrt_file, scene):
         pbrt_file.write("\n")
         pbrt_file.write(r'"float sigma" [%s]' % (bpy.data.scenes[0].mlt_sigma))
         pbrt_file.write("\n")
-    else if scene.integrators == 'my':
+    elif scene.integrators == 'my':
         pbrt_file.write(r'"integer bootstrapsamples" [%s]' % (bpy.data.scenes[0].my_bootstrapsamples))
         pbrt_file.write("\n")
         pbrt_file.write(r'"integer chains" [%s]' % (bpy.data.scenes[0].my_chains))
