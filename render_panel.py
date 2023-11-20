@@ -134,6 +134,15 @@ class PbrtRenderSettingsPanel(bpy.types.Panel):
             row.prop(scene,"mlt_largestepprobability")
             row = layout.row()
             row.prop(scene,"mlt_sigma")
+        else if scene.integrators == 'my':
+            row = layout.row()
+            row.prop(scene,"mlt_bootstrapsamples")
+            row = layout.row()
+            row.prop(scene,"mlt_chains")
+            row = layout.row()
+            row.prop(scene,"mlt_mutationsperpixel")
+            row = layout.row()
+            row.prop(scene,"mlt_sigma")
 
         if scene.integrators == 'sppm':
             row = layout.row()
@@ -211,7 +220,7 @@ def register():
     bpy.types.Scene.spp = bpy.props.IntProperty(name = "Samples per pixel", description = "Set spp", default = 100, min = 1, max = 9999)
     bpy.types.Scene.maxdepth = bpy.props.IntProperty(name = "Max depth", description = "Set max depth", default = 10, min = 1, max = 9999)
 
-    integrators = [("path", "path", "", 1), ("volpath", "volpath", "", 2),("bdpt", "bdpt", "", 3),("mlt", "mlt", "", 4),("sppm", "sppm", "", 5)]
+    integrators = [("path", "path", "", 1), ("volpath", "volpath", "", 2),("bdpt", "bdpt", "", 3),("mlt", "mlt", "", 4),("sppm", "sppm", "", 5),("my", "my", "", 6)]
     bpy.types.Scene.integrators = bpy.props.EnumProperty(name = "Name", items=integrators , default="path")
 
     lightsamplestrategy = [("uniform", "uniform", "", 1), ("power", "power", "", 2), ("spatial", "spatial", "", 3)]
@@ -243,6 +252,11 @@ def register():
     bpy.types.Scene.mlt_mutationsperpixel = bpy.props.IntProperty(name = "Mutations per pixel", description = "Mutations per pixel", default = 100, min = 1, max = 9999999)
     bpy.types.Scene.mlt_largestepprobability = bpy.props.FloatProperty(name = "Large step probability", description = "Large step probability", default = 0.3, min = 0.001, max = 1)
     bpy.types.Scene.mlt_sigma = bpy.props.FloatProperty(name = "Sigma", description = "Sigma", default = 0.01, min = 0.001, max = 1)
+
+    bpy.types.Scene.my_bootstrapsamples = bpy.props.IntProperty(name = "Bootstrap samples", description = "Bootstrap samples", default = 100000, min = 1, max = 9999999)
+    bpy.types.Scene.my_chains = bpy.props.IntProperty(name = "Chains", description = "Chains", default = 1000, min = 1, max = 9999999)
+    bpy.types.Scene.my_mutationsperpixel = bpy.props.IntProperty(name = "Mutations per pixel", description = "Mutations per pixel", default = 100, min = 1, max = 9999999)
+    bpy.types.Scene.my_sigma = bpy.props.FloatProperty(name = "Sigma", description = "Sigma", default = 0.01, min = 0.001, max = 1)
 
     bpy.types.Scene.sppm_numiterations = bpy.props.IntProperty(name = "Num iterations", description = "Num iterations", default = 64, min = 1, max = 9999999)
     bpy.types.Scene.sppm_photonsperiteration = bpy.props.IntProperty(name = "Photons per iteration", description = "Photons per iteration", default = 1, min = 1, max = 9999999)
