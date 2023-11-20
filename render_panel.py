@@ -134,7 +134,7 @@ class PbrtRenderSettingsPanel(bpy.types.Panel):
             row.prop(scene,"mlt_largestepprobability")
             row = layout.row()
             row.prop(scene,"mlt_sigma")
-        else if scene.integrators == 'my':
+        elif scene.integrators == 'my':
             row = layout.row()
             row.prop(scene,"mlt_bootstrapsamples")
             row = layout.row()
