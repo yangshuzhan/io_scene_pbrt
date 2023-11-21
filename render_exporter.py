@@ -149,7 +149,8 @@ def export_spot_lights(pbrt_file, scene):
                     at_point=at_point + from_point
                     pbrt_file.attr_begin()
                     pbrt_file.write(" LightSource \"spot\"\n \"point from\" [%s %s %s]\n \"point to\" [%s %s %s]\n" % (from_point.x, from_point.y, from_point.z,at_point.x, at_point.y, at_point.z))
-                    
+                    pbrt_file.write("\"float	coneangle\" %f\n" %la.spot_size*57.295)
+                    pbrt_file.write("\"float	conedeltaangle\" %f\n" %la.spot_size*la.spot_blend*57.295)
                     #TODO: Parse the values from the light \ color and so on. also add falloff etc.
                     pbrt_file.write("\"blackbody I\" [5500 125]\n")
 
