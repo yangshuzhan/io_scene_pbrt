@@ -9,6 +9,8 @@ This is forked from io_scene_pbrt https://github.com/stig-atle/io_scene_pbrt
 
 Support for directional lights, area lights are rendered as point lights currently.
 
+Export resolution now uses blender's scene resolution.
+
 "bpy.context.view_layer.update() object.data.update()" may cause crashes so removed.
 ***
 # io_scene_pbrt
