@@ -3,8 +3,13 @@ This is forked from io_scene_pbrt https://github.com/stig-atle/io_scene_pbrt
 
 1. First, install pbrt.
 2. Then download pbrt_blender_renderer as .zip and install in as a plugin in blender
-3. Select the path for your pbrt.exe.
+3. Select the path for your pbrt.exe in the rendering panel.
 4. Now you can press render button or F12 and get the image results in blender.
+# Changes
+
+Support for directional lights, area lights are rendered as point lights currently.
+
+"bpy.context.view_layer.update() object.data.update()" may cause crashes so removed.
 ***
 # io_scene_pbrt
 Keep in mind the development is not done, it's in very early stages, so consider it early alpha.
