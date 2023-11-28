@@ -1,7 +1,3 @@
-# pbrt_blender_renderer
-This is forked from io_scene_pbrt
-
-Now you can press render and view the image in blender.
 # io_scene_pbrt
 Keep in mind the development is not done, it's in very early stages, so consider it early alpha.
 

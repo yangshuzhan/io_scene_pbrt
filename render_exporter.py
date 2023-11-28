@@ -7,7 +7,7 @@ import mathutils
 from mathutils import Vector
 import shutil
 import struct
-
+import threading
 # Simple wrapper on IO to handle indentation
 class PBRTWriter: 
     def __init__(self, file):
@@ -92,7 +92,7 @@ def write_ply(file, mesh, indices, normals, i):
         out.write(struct.pack('<I', i+1))
         out.write(struct.pack('<I', i+2))
     out.close()
-
+lock=threading.Lock()
 #render engine custom begin
 class PBRTRenderEngine(bpy.types.RenderEngine):
     bl_idname = 'PBRT_Renderer'
@@ -101,14 +101,54 @@ class PBRTRenderEngine(bpy.types.RenderEngine):
     bl_use_material = True
     bl_use_shading_nodes = False
     bl_use_shading_nodes_custom = False
-    bl_use_texture_preview = True
-    bl_use_texture = True
-    
-    def render(self, scene):
-        self.report({'ERROR'}, "Use export function in PBRT panel.")
+    bl_use_texture_preview = False
+    bl_use_texture = True 
+
+    # When the render engine instance is destroy, this is called. Clean up any
+    # render engine data here, for example stopping running render threads.
+
+    def render(self, depsgraph):
+        lock.acquire()
+        try:
+            scene=depsgraph.scene
+            #export pbrt file
+            print("Starting calling pbrt_export")
+            print("Output path:")
+            filepath_full = bpy.path.abspath(scene.exportpath)
+            print(filepath_full)
+            frameNumber =scene.frame_current
+            print("Exporting frame: %s" % (frameNumber))
+        
+            export_pbrt(filepath_full, scene, '{0:05d}'.format(frameNumber))
+        
+            self.report({'INFO'}, "Export complete.")
+            os.chdir(filepath_full)
+            frameName='{0:05d}'.format(scene.frame_current)
+        
+            os.system(filepath_full+"pbrt "+filepath_full+"test"+frameName +".pbrt")
+        
+            outputFileName = os.path.splitext(os.path.basename(scene.outputfilename))
+            finalFileName = outputFileName[0] + frameName  + outputFileName[1]
+            bpy.ops.image.open(filepath=filepath_full+finalFileName,show_multiview=True)
+        
+            #load exr to buffer
+            #scene.render.resolution_x=scene.resolution_x#set to resolution in pbrt panel
+            #scene.render.resolution_y=scene.resolution_y
+
+            result = self.begin_result(0, 0, scene.render.resolution_x, scene.render.resolution_y)
+            result.layers[0].load_from_file(filepath_full+finalFileName)
+            
+        except:
+            pass
+        lock.release()
+        self.end_result(result)
+        
         
 from bl_ui import properties_render
 from bl_ui import properties_material
+from bl_ui import properties_data_light
+from bl_ui import properties_output
+from bl_ui import properties_world
 for member in dir(properties_render):
     subclass = getattr(properties_render, member)
     try:
@@ -122,8 +162,32 @@ for member in dir(properties_material):
         subclass.COMPAT_ENGINES.add('PBRT_Renderer')
     except:
         pass
-
+for member in dir(properties_data_light):
+    subclass = getattr(properties_data_light, member)
+    try:
+        subclass.COMPAT_ENGINES.add('PBRT_Renderer')
+    except:
+        pass
+for member in dir(properties_output):
+    subclass = getattr(properties_output, member)
+    try:
+        subclass.COMPAT_ENGINES.add('PBRT_Renderer')
+    except:
+        pass
+for member in dir(properties_world):
+    subclass = getattr(properties_world, member)
+    try:
+        subclass.COMPAT_ENGINES.add('PBRT_Renderer')
+    except:
+        pass
 bpy.utils.register_class(PBRTRenderEngine)
+
+def unregister():
+    bpy.utils.unregister_class(PBRTRenderEngine)
+
+    for panel in get_panels():
+        if 'PBRT_Renderer' in panel.COMPAT_ENGINES:
+            panel.COMPAT_ENGINES.remove('PBRT_Renderer')
 
 #Camera code:
 #https://blender.stackexchange.com/questions/16472/how-can-i-get-the-cameras-projection-matrix
@@ -137,7 +201,7 @@ def measure(first, second):
 
 def export_spot_lights(pbrt_file, scene):
     for ob in objects_in_render(scene):
-            print('OB TYPE: ' + ob.type)
+            #print('OB TYPE: ' + ob.type)
             if ob.type == "LIGHT" :
                 la = ob.data
                 print('Light type: ' + la.type)
@@ -157,12 +221,29 @@ def export_spot_lights(pbrt_file, scene):
                     pbrt_file.write("AttributeEnd\n\n")
     return ''
 
+def export_distant_lights(pbrt_file, scene):
+    for ob in objects_in_render(scene):
+            #print('OB TYPE: ' + ob.type)
+            if ob.type == "LIGHT" :
+                la = ob.data
+                print('SUN type: ' + la.type)
+                if la.type == "SUN" :
+                    print('\n\nexporting light: ' + la.name + ' - type: ' + la.type)
+                    from_point=ob.matrix_world.col[3]
+                    at_point=ob.matrix_world.col[2]
+                    at_point=at_point * -1
+                    at_point=at_point + from_point
+                    pbrt_file.attr_begin()
+                    pbrt_file.write(" LightSource \"distant\"\n \"point from\" [%s %s %s]\n \"point to\" [%s %s %s]\n" % (from_point.x, from_point.y, from_point.z,at_point.x, at_point.y, at_point.z))
+                    pbrt_file.write("AttributeEnd\n\n")
+    return ''
+
 def export_point_lights(pbrt_file, scene):
     for object in objects_in_render(scene):
             if object.type == "LIGHT" :
                 la = object.data
                 print('Light type: ' + la.type)
-                if la.type == "POINT" :
+                if la.type == "POINT" or la.type == "AREA" :
                     print('\n\nexporting lamp: ' + object.name + ' - type: ' + object.type)
                     print('\nExporting point light: ' + object.name)
                     pbrt_file.attr_begin()
@@ -230,16 +311,16 @@ def export_film(pbrt_file, frameNumber):
     print(outputFileName[1])
 
     finalFileName = outputFileName[0] + frameNumber  + outputFileName[1]
-    pbrt_file.write(r'Film "image" "integer xresolution" [%s] "integer yresolution" [%s] "string filename" "%s"' % (bpy.data.scenes[0].resolution_x, bpy.data.scenes[0].resolution_y, finalFileName))
+    pbrt_file.write(r'Film "image" "integer xresolution" [%s] "integer yresolution" [%s] "string filename" "%s"' % (bpy.data.scenes[0].render.resolution_x, bpy.data.scenes[0].render.resolution_y, finalFileName))
     pbrt_file.write("\n")
 
     pbrt_file.write(r'PixelFilter "%s" "float xwidth" [%s] "float ywidth" [%s] ' % (bpy.data.scenes[0].filterType, bpy.data.scenes[0].filter_x_width, bpy.data.scenes[0].filter_y_width))
     if bpy.data.scenes[0].filterType == 'sinc':
         pbrt_file.write(r'"float tau" [%s]' % (bpy.data.scenes[0].filter_tau))
-    if bpy.data.scenes[0].filterType == 'mitchell':
+    elif bpy.data.scenes[0].filterType == 'mitchell':
         pbrt_file.write(r'"float B" [%s]' % (bpy.data.scenes[0].filter_b))
         pbrt_file.write(r'"float C" [%s]' % (bpy.data.scenes[0].filter_c))
-    if bpy.data.scenes[0].filterType == 'gaussian':
+    elif bpy.data.scenes[0].filterType == 'gaussian':
         pbrt_file.write(r'"float alpha" [%s]' % (bpy.data.scenes[0].filter_alpha))
     pbrt_file.write("\n")
 
@@ -251,7 +332,7 @@ def export_film(pbrt_file, frameNumber):
         pbrt_file.write('"float emptybonus" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_emptybonus))
         pbrt_file.write('"integer maxprims" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_maxprims))
         pbrt_file.write('"integer maxdepth" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_maxdepth))
-    if bpy.data.scenes[0].accelerator == 'bvh':
+    elif bpy.data.scenes[0].accelerator == 'bvh':
         pbrt_file.write(r'"string splitmethod" "%s"' % (bpy.data.scenes[0].splitmethod))
         pbrt_file.write("\n")
         pbrt_file.write('"integer maxnodeprims" [%s]\n' % (bpy.data.scenes['Scene'].maxnodeprims))
@@ -276,21 +357,21 @@ def export_sampler(pbrt_file):
         pbrt_file.write(r'"integer dimensions" [%s]'% (bpy.data.scenes[0].dimension))
         pbrt_file.write("\n")
 
-    if bpy.data.scenes[0].sampler == 'random':
+    elif bpy.data.scenes[0].sampler == 'random':
         pbrt_file.write(r'"integer pixelsamples" [%s]'% (bpy.data.scenes[0].spp))
         pbrt_file.write("\n")
 
-    if bpy.data.scenes[0].sampler == 'sobol':
+    elif bpy.data.scenes[0].sampler == 'sobol':
         pbrt_file.write(r'"integer pixelsamples" [%s]'% (bpy.data.scenes[0].spp))
         pbrt_file.write("\n")
 
-    if bpy.data.scenes[0].sampler == 'lowdiscrepancy':
+    elif bpy.data.scenes[0].sampler == 'lowdiscrepancy':
         pbrt_file.write(r'"integer pixelsamples" [%s]'% (bpy.data.scenes[0].spp))
         pbrt_file.write("\n")
         pbrt_file.write(r'"integer dimensions" [%s]'% (bpy.data.scenes[0].dimension))
         pbrt_file.write("\n")
 
-    if bpy.data.scenes[0].sampler == 'stratified':
+    elif bpy.data.scenes[0].sampler == 'stratified':
         pbrt_file.write(r'"integer xsamples" [%s]'% (bpy.data.scenes[0].xsamples))
         pbrt_file.write("\n")
         pbrt_file.write(r'"integer ysamples" [%s]'% (bpy.data.scenes[0].ysamples))
@@ -319,28 +400,28 @@ def export_integrator(pbrt_file, scene):
             pbrt_file.write(r'"bool visualizeweights" "true"')
             pbrt_file.write("\n")
 
-    if scene.integrators == 'mlt':
-        pbrt_file.write(r'"integer bootstrapsamples" [%s]' % (bpy.data.scenes[0].mlt_bootstrapsamples))
+    elif scene.integrators == 'mlt':
+        pbrt_file.write(r'"integer bootstrapsamples" [%s]' % (bpy.data.scenes[0].bootstrapsamples))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"integer chains" [%s]' % (bpy.data.scenes[0].mlt_chains))
+        pbrt_file.write(r'"integer chains" [%s]' % (bpy.data.scenes[0].chains))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"integer mutationsperpixel" [%s]' % (bpy.data.scenes[0].mlt_mutationsperpixel))
+        pbrt_file.write(r'"integer mutationsperpixel" [%s]' % (bpy.data.scenes[0].mutationsperpixel))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"float largestepprobability" [%s]' % (bpy.data.scenes[0].mlt_largestepprobability))
+        pbrt_file.write(r'"float largestepprobability" [%s]' % (bpy.data.scenes[0].largestepprobability))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"float sigma" [%s]' % (bpy.data.scenes[0].mlt_sigma))
+        pbrt_file.write(r'"float sigma" [%s]' % (bpy.data.scenes[0].sigma))
         pbrt_file.write("\n")
     elif scene.integrators == 'my':
-        pbrt_file.write(r'"integer bootstrapsamples" [%s]' % (bpy.data.scenes[0].my_bootstrapsamples))
+        pbrt_file.write(r'"integer bootstrapsamples" [%s]' % (bpy.data.scenes[0].bootstrapsamples))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"integer chains" [%s]' % (bpy.data.scenes[0].my_chains))
+        pbrt_file.write(r'"integer chains" [%s]' % (bpy.data.scenes[0].chains))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"integer mutationsperpixel" [%s]' % (bpy.data.scenes[0].my_mutationsperpixel))
+        pbrt_file.write(r'"integer mutationsperpixel" [%s]' % (bpy.data.scenes[0].mutationsperpixel))
         pbrt_file.write("\n")
-        pbrt_file.write(r'"float sigma" [%s]' % (bpy.data.scenes[0].my_sigma))
+        pbrt_file.write(r'"float sigma" [%s]' % (bpy.data.scenes[0].sigma))
         pbrt_file.write("\n")
 
-    if scene.integrators == 'sppm':
+    elif scene.integrators == 'sppm':
         pbrt_file.write(r'"integer numiterations" [%s]' % (bpy.data.scenes[0].sppm_numiterations))
         pbrt_file.write("\n")
         pbrt_file.write(r'"integer photonsperiteration" [%s]' % (bpy.data.scenes[0].sppm_photonsperiteration))
@@ -492,7 +573,7 @@ def export_pbrt_matte_material (pbrt_file, mat):
         pbrt_file.write(r'"color Kd" [ %s %s %s]' %(mat.Kd[0],mat.Kd[1],mat.Kd[2]))
 
     pbrt_file.write("\n")
-    return ''
+    return True
 
 def export_pbrt_mirror_material (pbrt_file, mat):
     print('Currently exporting Pbrt mirror material')
@@ -1233,11 +1314,11 @@ def export_geometry(pbrt_file, scene, frameNumber):
         print("exporting:")
         print(object.name)
 
-        if object is not None and object.type != 'CAMERA' and object.type == 'MESH':
-            bpy.ops.object.mode_set(mode='OBJECT')
+        if object is not None and object.type == 'MESH':
+            #bpy.ops.object.mode_set(mode='OBJECT')
             print('exporting object: ' + object.name)
-            bpy.context.view_layer.update()
-            object.data.update()
+            #bpy.context.view_layer.update()
+            #object.data.update()
             dg = bpy.context.evaluated_depsgraph_get()
             eval_obj = object.evaluated_get(dg)
             mesh = eval_obj.to_mesh()
@@ -1360,6 +1441,7 @@ def export_pbrt(filepath, scene , frameNumber):
     export_EnviromentMap(pbrt_file)
     print('Begin export lights:')
     export_point_lights(pbrt_file,scene)
+    export_distant_lights(pbrt_file,scene)
     export_spot_lights(pbrt_file,scene)
     print('End export lights.')
     export_geometry(pbrt_file,scene,frameNumber)

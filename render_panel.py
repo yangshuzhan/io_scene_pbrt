@@ -1,6 +1,5 @@
 import bpy
 from . import render_exporter
-
 class ExportPbrtScene(bpy.types.Operator):
     bl_idname = 'scene.export'
     bl_label = 'Export Scene'
@@ -17,6 +16,7 @@ class ExportPbrtScene(bpy.types.Operator):
             print("Exporting frame: %s" % (frameNumber))
             render_exporter.export_pbrt(filepath_full, bpy.data.scenes['Scene'], '{0:05d}'.format(frameNumber))
         self.report({'INFO'}, "Export complete.")
+
         return {"FINISHED"}
 
 class PbrtRenderSettingsPanel(bpy.types.Panel):
@@ -69,11 +69,6 @@ class PbrtRenderSettingsPanel(bpy.types.Panel):
         row.prop(scene, "batch_frame_start")
         row.prop(scene, "batch_frame_end")
 
-        layout.label(text="Resolution:")
-        row = layout.row()
-        row.prop(scene, "resolution_x")
-        row.prop(scene, "resolution_y")
-       
         layout.label(text="Filter settings:")
         row = layout.row()
         row.prop(scene,"filterType")
@@ -125,24 +120,24 @@ class PbrtRenderSettingsPanel(bpy.types.Panel):
         
         if scene.integrators == 'mlt':
             row = layout.row()
-            row.prop(scene,"mlt_bootstrapsamples")
+            row.prop(scene,"bootstrapsamples")
             row = layout.row()
-            row.prop(scene,"mlt_chains")
+            row.prop(scene,"chains")
             row = layout.row()
-            row.prop(scene,"mlt_mutationsperpixel")
+            row.prop(scene,"mutationsperpixel")
             row = layout.row()
-            row.prop(scene,"mlt_largestepprobability")
+            row.prop(scene,"largestepprobability")
             row = layout.row()
-            row.prop(scene,"mlt_sigma")
+            row.prop(scene,"sigma")
         elif scene.integrators == 'my':
             row = layout.row()
-            row.prop(scene,"mlt_bootstrapsamples")
+            row.prop(scene,"bootstrapsamples")
             row = layout.row()
-            row.prop(scene,"mlt_chains")
+            row.prop(scene,"chains")
             row = layout.row()
-            row.prop(scene,"mlt_mutationsperpixel")
+            row.prop(scene,"mutationsperpixel")
             row = layout.row()
-            row.prop(scene,"mlt_sigma")
+            row.prop(scene,"sigma")
 
         if scene.integrators == 'sppm':
             row = layout.row()
@@ -228,9 +223,6 @@ def register():
 
     bpy.types.Scene.environmentmapscale = bpy.props.FloatProperty(name = "Env. map scale", description = "Env. map scale", default = 1, min = 0.001, max = 9999)
     
-    bpy.types.Scene.resolution_x = bpy.props.IntProperty(name = "X", description = "Resolution x", default = 1366, min = 1, max = 9999)
-    bpy.types.Scene.resolution_y = bpy.props.IntProperty(name = "Y", description = "Resolution y", default = 768, min = 1, max = 9999)
-
     bpy.types.Scene.dofLookAt = bpy.props.PointerProperty(name="Target", type=bpy.types.Object)
     bpy.types.Scene.lensradius = bpy.props.FloatProperty(name = "Lens radius", description = "Lens radius", default = 0, min = 0.001, max = 9999)
     
@@ -247,16 +239,12 @@ def register():
     description="visualize weights",
     default = False)
 
-    bpy.types.Scene.mlt_bootstrapsamples = bpy.props.IntProperty(name = "Bootstrap samples", description = "Bootstrap samples", default = 100000, min = 1, max = 9999999)
-    bpy.types.Scene.mlt_chains = bpy.props.IntProperty(name = "Chains", description = "Chains", default = 1000, min = 1, max = 9999999)
-    bpy.types.Scene.mlt_mutationsperpixel = bpy.props.IntProperty(name = "Mutations per pixel", description = "Mutations per pixel", default = 100, min = 1, max = 9999999)
-    bpy.types.Scene.mlt_largestepprobability = bpy.props.FloatProperty(name = "Large step probability", description = "Large step probability", default = 0.3, min = 0.001, max = 1)
-    bpy.types.Scene.mlt_sigma = bpy.props.FloatProperty(name = "Sigma", description = "Sigma", default = 0.01, min = 0.001, max = 1)
+    bpy.types.Scene.bootstrapsamples = bpy.props.IntProperty(name = "Bootstrap samples", description = "Bootstrap samples", default = 100000, min = 1, max = 9999999)
+    bpy.types.Scene.chains = bpy.props.IntProperty(name = "Chains", description = "Chains", default = 1000, min = 1, max = 9999999)
+    bpy.types.Scene.mutationsperpixel = bpy.props.IntProperty(name = "Mutations per pixel", description = "Mutations per pixel", default = 100, min = 1, max = 9999999)
+    bpy.types.Scene.largestepprobability = bpy.props.FloatProperty(name = "Large step probability", description = "Large step probability", default = 0.3, min = 0.001, max = 1)
+    bpy.types.Scene.sigma = bpy.props.FloatProperty(name = "Sigma", description = "Sigma", default = 0.01, min = 0.001, max = 1)
 
-    bpy.types.Scene.my_bootstrapsamples = bpy.props.IntProperty(name = "Bootstrap samples", description = "Bootstrap samples", default = 100000, min = 1, max = 9999999)
-    bpy.types.Scene.my_chains = bpy.props.IntProperty(name = "Chains", description = "Chains", default = 1000, min = 1, max = 9999999)
-    bpy.types.Scene.my_mutationsperpixel = bpy.props.IntProperty(name = "Mutations per pixel", description = "Mutations per pixel", default = 100, min = 1, max = 9999999)
-    bpy.types.Scene.my_sigma = bpy.props.FloatProperty(name = "Sigma", description = "Sigma", default = 0.01, min = 0.001, max = 1)
 
     bpy.types.Scene.sppm_numiterations = bpy.props.IntProperty(name = "Num iterations", description = "Num iterations", default = 64, min = 1, max = 9999999)
     bpy.types.Scene.sppm_photonsperiteration = bpy.props.IntProperty(name = "Photons per iteration", description = "Photons per iteration", default = 1, min = 1, max = 9999999)
@@ -291,3 +279,4 @@ def register():
     bpy.types.Scene.jitter = bpy.props.BoolProperty(name="jitter", description="jitter", default = True)
     bpy.types.Scene.xsamples = bpy.props.IntProperty(name = "xsamples", description = "xsamples", default = 4, min = 0, max = 9999999)
     bpy.types.Scene.ysamples = bpy.props.IntProperty(name = "ysamples", description = "ysamples", default = 4, min = 0, max = 9999999)
+
