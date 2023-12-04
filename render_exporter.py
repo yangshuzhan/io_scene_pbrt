@@ -243,13 +243,25 @@ def export_point_lights(pbrt_file, scene):
             if object.type == "LIGHT" :
                 la = object.data
                 print('Light type: ' + la.type)
-                if la.type == "POINT" or la.type == "AREA" :
+                if la.type == "POINT" :
                     print('\n\nexporting lamp: ' + object.name + ' - type: ' + object.type)
                     print('\nExporting point light: ' + object.name)
                     pbrt_file.attr_begin()
                     from_point=object.matrix_world.col[3]
                     pbrt_file.write("Translate\t%s %s %s\n" % (from_point.x, from_point.y, from_point.z))
-                    pbrt_file.write("LightSource \"point\"\n\"rgb I\" [%s %s %s]\n" % (bpy.data.objects[object.name].color[0], bpy.data.objects[object.name].color[1], bpy.data.objects[object.name].color[2]))
+                    pbrt_file.write("LightSource \"point\"\n\"rgb I\" [%s %s %s]\n" % (bpy.data.objects[object.name].data.color[0], bpy.data.objects[object.name].data.color[1], bpy.data.objects[object.name].data.color[2]))
+                    pbrt_file.attr_end()
+                    pbrt_file.write("\n\n")
+                elif la.type == "AREA" :
+                    print('\n\nexporting lamp: ' + object.name + ' - type: ' + object.type)
+                    print('\nExporting area light: ' + object.name)
+                    pbrt_file.attr_begin()
+                    from_point=object.matrix_world.col[3]
+                    pbrt_file.write("Translate\t%s %s %s\n" % (from_point.x, from_point.y, from_point.z))
+                    pbrt_file.write("AreaLightSource \"diffuse\" \"bool	twosided\"	\"true\" \"rgb L\" [%s %s %s]\n" % (bpy.data.objects[object.name].data.color[0], bpy.data.objects[object.name].data.color[1], bpy.data.objects[object.name].data.color[2]))
+                    pbrt_file.write( "Transform [" + matrixtostr( object.matrix_world.transposed() ) + "]\n" )
+                    pbrt_file.write("Shape \"disk\"\n\"float radius\" [%s]\n" % bpy.data.objects[object.name].data.size)
+                    
                     pbrt_file.attr_end()
                     pbrt_file.write("\n\n")
 
