@@ -275,7 +275,7 @@ def export_camera(pbrt_file):
         self.report({'ERROR'}, "No camera in scene, aborting")
     elif cam_ob.type == 'CAMERA':
         print("regular scene cam")
-        print("render res: ", bpy.data.scenes['Scene'].render.resolution_x , " x ", bpy.data.scenes['Scene'].render.resolution_y)
+        print("render res: ", bpy.context.scene.render.resolution_x , " x ", bpy.context.scene.render.resolution_y)
         print("Exporting camera: ", cam_ob.name)
 
         pbrt_file.write("Scale -1 1 1 #avoid the 'flipped image' bug..\n")
@@ -305,15 +305,15 @@ def export_camera(pbrt_file):
 
         #https://blender.stackexchange.com/questions/14745/how-do-i-change-the-focal-length-of-a-camera-with-python
         # compute fov according to ratio and angle (Blender uses max angle whereas pbrt uses min angle)
-        ratio = bpy.data.scenes['Scene'].render.resolution_y / bpy.data.scenes['Scene'].render.resolution_x
+        ratio = bpy.data.scenes[0].render.resolution_y / bpy.data.scenes[0].render.resolution_x
         angle_rad = bpy.data.cameras[0].angle 
         fov = 2.0 * math.atan ( ratio * math.tan( angle_rad / 2.0 )) * 180.0 / math.pi 
         pbrt_file.write('Camera "perspective"\n')
         pbrt_file.write('"float fov" [%s]\n' % (fov))
 
-        if bpy.data.scenes['Scene'].dofLookAt is not None:
-            pbrt_file.write('"float lensradius" [%s]\n' % (bpy.data.scenes['Scene'].lensradius))
-            pbrt_file.write('"float focaldistance" [%s]\n\n' % (measure(cam_ob.matrix_world.translation, bpy.data.scenes['Scene'].dofLookAt.matrix_world.translation)))
+        if bpy.data.scenes[0].dofLookAt is not None:
+            pbrt_file.write('"float lensradius" [%s]\n' % (bpy.data.scenes[0].lensradius))
+            pbrt_file.write('"float focaldistance" [%s]\n\n' % (measure(cam_ob.matrix_world.translation, bpy.data.scenes[0].dofLookAt.matrix_world.translation)))
     return ''
 
 def export_film(pbrt_file, frameNumber):
@@ -339,15 +339,15 @@ def export_film(pbrt_file, frameNumber):
     pbrt_file.write(r'Accelerator "%s" ' % (bpy.data.scenes[0].accelerator))
     pbrt_file.write("\n")
     if  bpy.data.scenes[0].accelerator == 'kdtree':
-        pbrt_file.write('"integer intersectcost" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_intersectcost))
-        pbrt_file.write('"integer traversalcost" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_traversalcost))
-        pbrt_file.write('"float emptybonus" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_emptybonus))
-        pbrt_file.write('"integer maxprims" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_maxprims))
-        pbrt_file.write('"integer maxdepth" [%s]\n' % (bpy.data.scenes['Scene'].kdtreeaccel_maxdepth))
+        pbrt_file.write('"integer intersectcost" [%s]\n' % (bpy.data.scenes[0].kdtreeaccel_intersectcost))
+        pbrt_file.write('"integer traversalcost" [%s]\n' % (bpy.data.scenes[0].kdtreeaccel_traversalcost))
+        pbrt_file.write('"float emptybonus" [%s]\n' % (bpy.data.scenes[0].kdtreeaccel_emptybonus))
+        pbrt_file.write('"integer maxprims" [%s]\n' % (bpy.data.scenes[0].kdtreeaccel_maxprims))
+        pbrt_file.write('"integer maxdepth" [%s]\n' % (bpy.data.scenes[0].kdtreeaccel_maxdepth))
     elif bpy.data.scenes[0].accelerator == 'bvh':
         pbrt_file.write(r'"string splitmethod" "%s"' % (bpy.data.scenes[0].splitmethod))
         pbrt_file.write("\n")
-        pbrt_file.write('"integer maxnodeprims" [%s]\n' % (bpy.data.scenes['Scene'].maxnodeprims))
+        pbrt_file.write('"integer maxnodeprims" [%s]\n' % (bpy.data.scenes[0].maxnodeprims))
     return ''
 
 def export_sampler(pbrt_file):
