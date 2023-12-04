@@ -7,7 +7,7 @@ This is forked from io_scene_pbrt https://github.com/stig-atle/io_scene_pbrt
 4. Now you can press render button or F12 and get the image results in blender.
 # Changes
 
-Support for directional lights, area lights are rendered as point lights currently.
+Support for directional lights, area lights are rendered as disc lights currently.
 
 Export resolution now uses blender's scene resolution.
 
