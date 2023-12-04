@@ -11,10 +11,10 @@ class ExportPbrtScene(bpy.types.Operator):
         print("Output path:")
         filepath_full = bpy.path.abspath(bpy.data.scenes[0].exportpath)
         print(filepath_full)
-        for frameNumber in range(bpy.data.scenes['Scene'].batch_frame_start, bpy.data.scenes['Scene'].batch_frame_end +1):
-            bpy.data.scenes['Scene'].frame_set(frameNumber)
+        for frameNumber in range(bpy.data.scenes[0].batch_frame_start, bpy.data.scenes[0].batch_frame_end +1):
+            bpy.data.scenes[0].frame_set(frameNumber)
             print("Exporting frame: %s" % (frameNumber))
-            render_exporter.export_pbrt(filepath_full, bpy.data.scenes['Scene'], '{0:05d}'.format(frameNumber))
+            render_exporter.export_pbrt(filepath_full, bpy.data.scenes[0], '{0:05d}'.format(frameNumber))
         self.report({'INFO'}, "Export complete.")
 
         return {"FINISHED"}
