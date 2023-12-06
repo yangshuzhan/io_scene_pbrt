@@ -1,7 +1,7 @@
 # pbrt_blender_renderer
 This is forked from io_scene_pbrt https://github.com/stig-atle/io_scene_pbrt
 
-![image](https://github.com/yangshuzhan/pbrt_blender_renderer/samplescene/car.jpg)
+![image](https://raw.githubusercontent.com/yangshuzhan/pbrt_blender_renderer/master/samplescene/car.jpg)
 1. First, install pbrt.
 2. Then download pbrt_blender_renderer as .zip and install in as a plugin in blender
 3. Select the path for your pbrt.exe in the rendering panel.
