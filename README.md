@@ -2,10 +2,7 @@
 This is forked from io_scene_pbrt https://github.com/stig-atle/io_scene_pbrt
 
 ![image](https://raw.githubusercontent.com/yangshuzhan/pbrt_blender_renderer/master/samplescene/car.jpg) This scene from blendswap CC-BY-NC-SA
-1. First, install pbrt.
-2. Then download pbrt_blender_renderer as .zip and install in as a plugin in blender
-3. Select the path for your pbrt.exe in the rendering panel.
-4. Now you can press render button or F12 and get the image results in blender.
+
 # Changes
 
 Support for directional lights, area lights are rendered as disc lights currently.
